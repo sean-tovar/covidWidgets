@@ -18,25 +18,31 @@
 <script type="text/javascript">
 
 
-
+    // Initialize cases object, will contain {date and case/death count}.
     var casesByDate = {};
     var deathsByDate = {};
 
-
+    // Initialize a FeatureLayer. This is needed to make a call to the ArcGIS features for Covid Cases
+    // Feature and Covid Deaths Feature. Once the Covid Cases Feature is loaded we query using the
+    // createQuery() function for all fields (1 = 1) and output only the date fields/values. We then take
+    // those fields/values and convert them into the casesByDate and deathsByDate object. This in turn
+    // will be passed to Google Chart's API where it will do the drawing of the chart.
     require(["esri/layers/FeatureLayer"], function(FeatureLayer) {
+
         var casesFeaturelayer = new FeatureLayer({
             url: "https://services1.arcgis.com/hVMNhMnY75fwfIFy/arcgis/rest/services/COVID19_cases/FeatureServer/0"
 
         });
-
+        // Load number of cases feature.
         casesFeaturelayer.load();
 
-
+        // Create query to pull down all rows but only the columns specified in the outFields. Will
+        // need to make this dynamic in the future for additional days.
         var query = casesFeaturelayer.createQuery();
         query.where = "(1 = 1)";
         query.outFields =  ["Mar11","Mar12","Mar14","Mar15","Mar16","Mar17","Mar18","Mar19",
             "Mar20","Mar21","Mar22","Mar23","Mar24","Mar25","Mar26","Mar27","Mar28"];
-
+        // When the query is complete then loop through the rows and create the casesByDate object.
         casesFeaturelayer.queryFeatures(query).then(function(results) {
 
             results.features.forEach(function(data){
@@ -52,13 +58,13 @@
                 }
 
             });
-
+            // Once casesByDate object is created then load deaths feature.
             var deathsFeaturelayer = new FeatureLayer({
                 url: "https://services1.arcgis.com/hVMNhMnY75fwfIFy/arcgis/rest/services/COVID19_death/FeatureServer/0"
             });
 
             deathsFeaturelayer.load();
-
+            // Build the deathsByDate object.
             deathsFeaturelayer.queryFeatures(query).then(function(results) {
                 results.features.forEach(function(data){
 
@@ -73,7 +79,7 @@
                     }
 
                 });
-
+                // Once done pass the deathsByDate and casesByDate to google chart and it will draw the chart.
                 google.load("visualization", "1", {packages:["corechart", "line"]});
                 google.charts.setOnLoadCallback( function() { drawChart(casesByDate,deathsByDate) });
             });
@@ -85,7 +91,7 @@
     });
 
 
-    // Draw the chart and set the chart values
+    // Draw the chart with 2 y axis and set the chart values
     function drawChart(casesByDate, deathsByDate) {
         if(casesByDate != undefined && deathsByDate != undefined) {
             var data = new google.visualization.DataTable();
@@ -108,7 +114,6 @@
                 covidCountArray.push(covidCount);
             });
 
-            console.log(covidCountArray);
             data.addRows(covidCountArray);
 
             var options = {
@@ -131,9 +136,6 @@
                 width: 900,
                 height: 500
             };
-
-            var foo = document.getElementById('covidLineChart');
-            console.log(foo);
 
             var chart = new google.charts.Line(document.getElementById('covidLineChart'));
             chart.draw(data, options);
