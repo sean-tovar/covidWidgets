@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+
+</head>
+<body>
+
+<div id="covidLineChart"></div>
+
+</body>
+</html>
+<script type="text/javascript" src="https://js.arcgis.com/4.14/"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js'></script>
+<script type="text/javascript">
+
+
+
+    var casesByDate = {};
+    var deathsByDate = {};
+
+
+    require(["esri/layers/FeatureLayer"], function(FeatureLayer) {
+        var casesFeaturelayer = new FeatureLayer({
+            url: "https://services1.arcgis.com/hVMNhMnY75fwfIFy/arcgis/rest/services/COVID19_cases/FeatureServer/0"
+
+        });
+
+        casesFeaturelayer.load();
+
+
+        var query = casesFeaturelayer.createQuery();
+        query.where = "(1 = 1)";
+        query.outFields =  ["Mar11","Mar12","Mar14","Mar15","Mar16","Mar17","Mar18","Mar19",
+            "Mar20","Mar21","Mar22","Mar23","Mar24","Mar25","Mar26","Mar27","Mar28"];
+
+        casesFeaturelayer.queryFeatures(query).then(function(results) {
+
+            results.features.forEach(function(data){
+
+                for (var prop in data.attributes) {
+
+                    if(casesByDate[prop] === undefined){
+                        casesByDate[prop] = 0;
+                    }
+                    casesByDate[prop] += data.attributes[prop];
+
+
+                }
+
+            });
+
+            var deathsFeaturelayer = new FeatureLayer({
+                url: "https://services1.arcgis.com/hVMNhMnY75fwfIFy/arcgis/rest/services/COVID19_death/FeatureServer/0"
+            });
+
+            deathsFeaturelayer.load();
+
+            deathsFeaturelayer.queryFeatures(query).then(function(results) {
+                results.features.forEach(function(data){
+
+                    for (var prop in data.attributes) {
+
+                        if(deathsByDate[prop] === undefined){
+                            deathsByDate[prop] = 0;
+                        }
+                        deathsByDate[prop] += data.attributes[prop];
+
+
+                    }
+
+                });
+
+                google.load("visualization", "1", {packages:["corechart", "line"]});
+                google.charts.setOnLoadCallback( function() { drawChart(casesByDate,deathsByDate) });
+            });
+
+
+
+        });
+
+    });
+
+
+    // Draw the chart and set the chart values
+    function drawChart(casesByDate, deathsByDate) {
+        if(casesByDate != undefined && deathsByDate != undefined) {
+            var data = new google.visualization.DataTable();
+
+            data.addColumn('string', 'Date');
+            data.addColumn('number', "Confirmed Cases");
+            data.addColumn('number', "Confirmed Deaths");
+
+            let covidCountArray = [];
+            let deathsArray = [];
+            deathsArray = Object.entries(deathsByDate);
+
+            Object.entries(casesByDate).forEach(([key, value], index) => {
+                let covidCount = [];
+                let date = key;
+                let caseCount = value;
+                covidCount[0] = date;
+                covidCount[1] = caseCount;
+                covidCount[2] = deathsArray[index][1];
+                covidCountArray.push(covidCount);
+            });
+
+            console.log(covidCountArray);
+            data.addRows(covidCountArray);
+
+            var options = {
+                chart: {
+                    title: 'Total COVID-19 Cases / Deaths'
+                },
+                series: {
+                    // Gives each series an axis name that matches the Y-axis below.
+                    0: {axis: 'Cases'},
+                    1: {axis: 'Deaths'}
+                },
+                axes: {
+                    // Adds labels to each axis; they don't have to match the axis names.
+                    y: {
+                        Cases: {label: 'Confirmed Cases'},
+                        Deaths: {label: 'Confirmed Deaths'}
+                    }
+                },
+
+                width: 900,
+                height: 500
+            };
+
+            var foo = document.getElementById('covidLineChart');
+            console.log(foo);
+
+            var chart = new google.charts.Line(document.getElementById('covidLineChart'));
+            chart.draw(data, options);
+
+            google.charts.setOnLoadCallback(drawChart);
+
+        }
+
+    }
+</script>
