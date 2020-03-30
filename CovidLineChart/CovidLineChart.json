@@ -1,0 +1,13 @@
+{
+  "type": "Widget",
+  "title": "Covid Line Chart Cases/Deaths in Texas",
+  "description": "A widget that shows a line chart of cases and deaths in the state of Texas",
+  "useDataFromView": false,
+  "runtime": {
+    "path": "CovidLineChartCasesDeaths.html"
+  },
+  "configuration": {
+    "requireDataSource": false
+  },
+  "credits": "Esri"
+}
